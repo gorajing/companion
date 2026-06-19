@@ -12,6 +12,7 @@ import '@pixi/unsafe-eval';
 import * as PIXI from 'pixi.js';
 import type { Live2DModel as Live2DModelType } from 'pixi-live2d-display-lipsyncpatch';
 import type { AvatarState } from '../../shared/avatar';
+import type { ActivityCue } from './types';
 
 // REQUIRED by the plugin: it reads window.PIXI.Ticker to auto-update models, and
 // for some bundlers grabs other PIXI internals. Must be set before from().
@@ -40,6 +41,8 @@ export interface Placeholder {
   setLabel(text: string): void;
   /** State-aware expression, posture, and effect changes. */
   setState(state: AvatarState, color: number): void;
+  /** Tiny work prop + short caption for the latest action-event beat. */
+  setActivity(cue: ActivityCue | null): void;
   /** 0..1 mouth openness for lip-sync feedback. */
   setMouthOpen(v: number): void;
   /** Assistant speech boundary from Vapi. */
@@ -91,6 +94,9 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
   let talking = false;
   let blinkUntil = 0;
   let nextBlink = performance.now() + 1700;
+  let activity: ActivityCue | null = null;
+  let activityStartedAt = 0;
+  const activityTrail: string[] = [];
 
   const PIXEL = 16;
   const GRID_W = 18;
@@ -126,6 +132,7 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
   const eyes = new PIXI.Graphics();
   const mouth = new PIXI.Graphics();
   const foreground = new PIXI.Graphics();
+  const prop = new PIXI.Graphics();
   const signal = new PIXI.Graphics();
 
   const px = (g: PIXI.Graphics, x: number, y: number, w: number, h: number, color: number, alpha = 1) => {
@@ -133,6 +140,31 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     g.drawRect((x - GRID_W / 2) * PIXEL, (y - GRID_H / 2) * PIXEL, w * PIXEL, h * PIXEL);
     g.endFill();
   };
+
+  const activityColor = (cue: ActivityCue | null): number => {
+    switch (cue?.kind) {
+      case 'thinking':
+        return EFFECT.thoughtHot;
+      case 'memory':
+        return EFFECT.success;
+      case 'read':
+      case 'command':
+        return EFFECT.working;
+      case 'edit':
+        return EFFECT.successGold;
+      case 'success':
+        return EFFECT.success;
+      case 'error':
+        return EFFECT.error;
+      case 'talking':
+        return EFFECT.signal;
+      default:
+        return CAT.white;
+    }
+  };
+
+  const trimActivityText = (text: string): string =>
+    text.length > 28 ? `${text.slice(0, 25)}...` : text;
 
   type CatAction = 'standing' | 'sitting' | 'walking';
 
@@ -334,6 +366,65 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     }
   };
 
+  const activeActivity = (alpha: number): ActivityCue | null => {
+    if (activity && alpha > 0) return activity;
+    if (state === 'thinking') return { kind: 'thinking', text: 'thinking' };
+    if (state === 'working') return { kind: 'command', text: 'working' };
+    if (state === 'done') return { kind: 'success', text: 'done' };
+    if (state === 'error') return { kind: 'error', text: 'stuck' };
+    if (talking) return { kind: 'talking', text: 'speaking' };
+    return null;
+  };
+
+  const drawActivityProp = (tick = 0) => {
+    prop.clear();
+    const elapsed = performance.now() - activityStartedAt;
+    const fade = activity ? Math.max(0, Math.min(1, 1 - (elapsed - 2200) / 800)) : 0;
+    const cue = activeActivity(fade);
+    if (!cue) return;
+    const alpha = activity ? Math.max(0.45, fade) : 0.65;
+    const blink = Math.floor(tick / 14) % 2;
+
+    if (cue.kind === 'memory') {
+      px(prop, 3, 5, 2, 2, EFFECT.signal, alpha);
+      px(prop, 3, 5, 1, 1, EFFECT.success, alpha);
+      px(prop, 5, 5, 1, 2, EFFECT.success, alpha);
+      if (blink) px(prop, 4, 4, 1, 1, EFFECT.successGold, alpha);
+    } else if (cue.kind === 'read') {
+      px(prop, 14, 9, 3, 4, CAT.white, alpha);
+      px(prop, 15, 10, 2, 1, EFFECT.workingSoft, alpha);
+      px(prop, 15, 12, 2, 1, EFFECT.working, alpha);
+    } else if (cue.kind === 'edit') {
+      px(prop, 14, 11, 1, 1, EFFECT.successGold, alpha);
+      px(prop, 15, 10, 1, 1, EFFECT.successGold, alpha);
+      px(prop, 16, 9, 1, 1, CAT.ear, alpha);
+      if (blink) px(prop, 13, 12, 1, 1, EFFECT.thoughtHot, alpha);
+    } else if (cue.kind === 'command') {
+      px(prop, 14, 10, 4, 3, CAT.black, alpha);
+      px(prop, 14, 10, 4, 1, EFFECT.working, alpha);
+      px(prop, 15, 12, 1, 1, EFFECT.success, alpha);
+      if (blink) px(prop, 17, 12, 1, 1, EFFECT.workingSoft, alpha);
+    } else if (cue.kind === 'success') {
+      px(prop, 14, 8, 1, 2, EFFECT.success, alpha);
+      px(prop, 15, 9, 1, 1, EFFECT.success, alpha);
+      px(prop, 16, 7, 1, 1, EFFECT.successGold, alpha);
+      if (blink) px(prop, 13, 6, 1, 1, EFFECT.successGold, alpha);
+    } else if (cue.kind === 'error') {
+      px(prop, 14, 7, 2, 1, EFFECT.error, alpha);
+      px(prop, 15, 8, 1, 3, EFFECT.error, alpha);
+      px(prop, 15, 12, 1, 1, EFFECT.errorHot, alpha);
+      if (blink) px(prop, 13, 6, 1, 1, EFFECT.errorHot, alpha);
+    } else if (cue.kind === 'talking') {
+      px(prop, 15, 5, 1, 1, EFFECT.signal, alpha);
+      px(prop, 16, 4, 1, 1, EFFECT.signalSoft, alpha);
+      px(prop, 16, 7, 1, 1, EFFECT.signalSoft, alpha);
+    } else if (cue.kind === 'thinking') {
+      px(prop, 10, 1, 1, 1, EFFECT.thought, alpha);
+      px(prop, 12, 0, 1, 1, EFFECT.thoughtHot, alpha);
+      if (blink) px(prop, 13, 1, 1, 1, EFFECT.thought, alpha);
+    }
+  };
+
   const label = new PIXI.Text('idle', {
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, monospace',
     fontSize: 18,
@@ -343,13 +434,67 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
   });
   label.anchor.set(0.5, 0);
   label.position.set(0, 142);
+
+  const activityBlip = new PIXI.Text('', {
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, monospace',
+    fontSize: 12,
+    fontWeight: '700',
+    fill: CAT.white,
+    align: 'center',
+    dropShadow: true,
+    dropShadowColor: 0x000000,
+    dropShadowBlur: 0,
+    dropShadowDistance: 2,
+  });
+  activityBlip.anchor.set(0.5, 0.5);
+
+  const activityTail = new PIXI.Text('', {
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, monospace',
+    fontSize: 9,
+    fontWeight: '700',
+    fill: CAT.white,
+    align: 'left',
+    dropShadow: true,
+    dropShadowColor: 0x000000,
+    dropShadowBlur: 0,
+    dropShadowDistance: 1,
+  });
+  activityTail.anchor.set(0, 0);
+
+  const refreshActivityText = () => {
+    const floating = isFloatingWindow();
+    const elapsed = performance.now() - activityStartedAt;
+    const cueFade = activity ? Math.max(0, Math.min(1, 1 - (elapsed - 2200) / 800)) : 0;
+    const cue = activeActivity(cueFade);
+    const blipVisible = floating && !!activity?.text && cueFade > 0;
+    activityBlip.visible = blipVisible;
+    if (blipVisible) {
+      activityBlip.text = trimActivityText(activity.text ?? '');
+      activityBlip.style.fill = activityColor(activity);
+      activityBlip.alpha = cueFade;
+      activityBlip.position.set(0, -128 - (1 - cueFade) * 16);
+    }
+
+    const trailVisible = floating && activityTrail.length > 1 && elapsed >= 3000 && elapsed < 5200;
+    activityTail.visible = trailVisible;
+    if (trailVisible) {
+      activityTail.text = activityTrail.slice(-3).map((item) => `· ${trimActivityText(item)}`).join('\n');
+      activityTail.alpha = Math.min(0.74, Math.max(0, 1 - (elapsed - 3600) / 1600));
+      activityTail.position.set(-118, 104);
+    }
+
+    if (!cue && !blipVisible) {
+      activityBlip.text = '';
+    }
+  };
+
   const refreshLabelVisibility = () => {
     label.visible = !isFloatingWindow();
   };
   refreshLabelVisibility();
 
-  body.addChild(tail, cat, eyes, mouth, foreground, signal);
-  container.addChild(aura, body, label);
+  body.addChild(tail, cat, eyes, mouth, foreground, prop, signal);
+  container.addChild(aura, body, activityBlip, activityTail, label);
   app.stage.addChild(container);
 
   let lastFitWidth = 0;
@@ -378,10 +523,13 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
   drawCat();
   redrawFace();
   redrawAura();
+  drawActivityProp();
+  refreshActivityText();
 
   app.ticker.add(() => {
     if (app.screen.width !== lastFitWidth || app.screen.height !== lastFitHeight) fit();
     refreshLabelVisibility();
+    refreshActivityText();
 
     const now = performance.now();
     if (now > nextBlink) {
@@ -401,6 +549,7 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     redrawFace(tick, action);
     redrawAura(tick);
     redrawSignal(tick);
+    drawActivityProp(tick);
   }, undefined, PIXI.UPDATE_PRIORITY.LOW);
 
   const applyState = (nextState: AvatarState, color: number) => {
@@ -410,6 +559,20 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     redrawFace();
     redrawAura();
     redrawSignal();
+    drawActivityProp();
+    refreshActivityText();
+  };
+
+  const applyActivity = (cue: ActivityCue | null) => {
+    activity = cue;
+    activityStartedAt = performance.now();
+    if (cue?.text) {
+      const text = trimActivityText(cue.text);
+      if (activityTrail[activityTrail.length - 1] !== text) activityTrail.push(text);
+      if (activityTrail.length > 3) activityTrail.splice(0, activityTrail.length - 3);
+    }
+    drawActivityProp();
+    refreshActivityText();
   };
 
   return {
@@ -427,13 +590,16 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
       refreshLabelVisibility();
     },
     setState: applyState,
+    setActivity: applyActivity,
     setMouthOpen: (v: number) => {
       mouthOpen = Math.max(0, Math.min(1, v));
       redrawFace();
     },
     setTalking: (nextTalking: boolean) => {
       talking = nextTalking;
+      if (nextTalking) applyActivity({ kind: 'talking', text: 'speaking' });
       redrawFace();
+      redrawSignal();
     },
   };
 }

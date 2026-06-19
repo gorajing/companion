@@ -181,6 +181,7 @@ export async function bootstrap(): Promise<void> {
     driver,
     voice,
     setState: (s: Parameters<typeof driver.setState>[0]) => driver.setState(s),
+    setActivity: (cue: Parameters<typeof driver.setActivity>[0]) => driver.setActivity(cue),
     setMouthOpen: (v: number) => driver.setMouthOpen(v),
   };
 }
