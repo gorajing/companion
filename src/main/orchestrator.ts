@@ -208,7 +208,13 @@ export async function runTurn(input: TurnInput): Promise<{ runId: string }> {
   const { transcript, sessionId } = input;
   const runId = newRunId();
 
+  // Recall BEFORE storing this turn's transcript so the query isn't matched
+  // against itself.
   const memory = await recallContext(transcript, sessionId, runId);
+
+  // Persist what the USER said (not just the cat's paraphrase) so facts and
+  // preferences stated by the user are recallable verbatim in later turns.
+  await rememberUserSaid(sessionId, transcript);
 
   let decision: Decision;
   try {
@@ -322,6 +328,21 @@ async function rememberNarration(sessionId: string, text: string): Promise<void>
     });
   } catch (err) {
     console.error('[orchestrator] remember narration failed:', (err as Error).message);
+  }
+}
+
+/** Persist the user's raw transcript so their stated facts/preferences recall verbatim. */
+async function rememberUserSaid(sessionId: string, transcript: string): Promise<void> {
+  if (!transcript.trim()) return;
+  try {
+    const memory = await loadMemory();
+    await memory.remember({
+      session_id: sessionId,
+      kind: 'observation',
+      text: transcript,
+    });
+  } catch (err) {
+    console.error('[orchestrator] remember user transcript failed:', (err as Error).message);
   }
 }
 
