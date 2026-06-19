@@ -23,11 +23,17 @@ import type { MicStatus } from '../shared/ipc';
 export async function ensureMicAccess(): Promise<MicStatus> {
   if (process.platform !== 'darwin') return 'granted';
   let status = systemPreferences.getMediaAccessStatus('microphone') as MicStatus;
+  console.log(`[mic] initial TCC microphone status: '${status}'`);
   if (status === 'not-determined') {
     // askForMediaAccess prompts ONCE; if already denied it resolves false without prompting
     // and the app must be restarted after the user flips it in System Settings.
+    console.log('[mic] requesting microphone access — the macOS permission prompt should appear now…');
     const ok = await systemPreferences.askForMediaAccess('microphone');
     status = ok ? 'granted' : 'denied';
+    console.log(`[mic] askForMediaAccess resolved to: '${status}'`);
+  } else {
+    console.log(`[mic] status is '${status}' (not 'not-determined'), so no prompt will show. ` +
+      `If denied/stuck, reset with: tccutil reset Microphone com.github.Electron`);
   }
   return status;
 }

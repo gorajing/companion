@@ -75,8 +75,25 @@ export function wireVapiEvents(vapi: Vapi, opts: WireOptions): void {
   });
 
   vapi.on('error', (e: unknown) => {
-    console.error('[vapi] error', e);
+    console.error('[vapi] error', describeVapiError(e));
     character.setState('error');
     onError?.(e);
   });
+}
+
+/** Vapi/Daily errors are plain objects that log as "[object Object]"; surface their real content. */
+function describeVapiError(e: unknown): string {
+  if (e == null) return String(e);
+  if (typeof e === 'string') return e;
+  if (e instanceof Error) return `${e.name}: ${e.message}`;
+  try {
+    const o = e as Record<string, unknown>;
+    const fields = [o.errorMsg, o.message, o.type, o.action, o.error]
+      .filter((v) => v != null)
+      .map((v) => (typeof v === 'string' ? v : JSON.stringify(v)));
+    const full = JSON.stringify(e, Object.getOwnPropertyNames(e as object));
+    return (fields.length ? fields.join(' | ') + ' ' : '') + full;
+  } catch {
+    return Object.prototype.toString.call(e);
+  }
 }
