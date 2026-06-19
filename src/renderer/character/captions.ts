@@ -38,7 +38,10 @@ function summarizeEvent(e: ActionEvent): { label: string; detail: string; status
     case 'turn.started':
       return { label: 'turn.started', detail: e.runId };
     case 'reasoning':
-      return { label: 'DeepSeek reasoning (Nebius)', detail: e.text };
+      // This event comes from the EXECUTOR (the coding agent), not the Nebius
+      // brain — the brain's reasoning streams over a separate channel. Label it
+      // honestly as the agent's reasoning.
+      return { label: 'Agent reasoning', detail: e.text };
     case 'command':
       return { label: 'command', detail: e.command, status: e.status };
     case 'file_change':

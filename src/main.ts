@@ -18,6 +18,13 @@ if (started) {
   app.quit();
 }
 
+// Optional Chromium remote-debugging port for end-to-end UI testing. Gated behind
+// an env var so it is OFF for normal/demo runs; launch with COMPANION_DEBUG_PORT=9223
+// to attach a CDP client to the renderer. Must be set before app 'ready'.
+if (process.env.COMPANION_DEBUG_PORT) {
+  app.commandLine.appendSwitch('remote-debugging-port', process.env.COMPANION_DEBUG_PORT);
+}
+
 // IPC handlers are stateless and safe to register before windows exist.
 registerIpcHandlers();
 

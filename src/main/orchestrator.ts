@@ -216,6 +216,15 @@ export async function runTurn(input: TurnInput): Promise<{ runId: string }> {
   // preferences stated by the user are recallable verbatim in later turns.
   await rememberUserSaid(sessionId, transcript);
 
+  // Visible (and truthful) Nebius beat: DeepSeek produces the decision +
+  // narration that follow, so name the brain doing the planning here.
+  pushEvent({
+    kind: 'message',
+    runId,
+    text: 'DeepSeek (Nebius) is planning the task…',
+    ts: Date.now(),
+  });
+
   let decision: Decision;
   try {
     decision = await decideStreaming({ transcript, memory });
