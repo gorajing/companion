@@ -15,7 +15,7 @@
 //   message[transcript]-> captions.update; user partial -> setState('listening')
 //   message[final,user]-> window.companion.turnRun({transcript, sessionId})
 //   message[tool-calls]-> onToolCalls (orchestrator hook)
-//   error             -> setState('error')
+//   error             -> setState('error') only when no executor run is active
 
 import type Vapi from '@vapi-ai/web';
 import type { CharacterDriver, CaptionSink } from '../character/types';

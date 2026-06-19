@@ -7,6 +7,13 @@ import type { AvatarState } from '../../shared/avatar';
 
 export type { AvatarState };
 
+export type ActivityCueKind = 'thinking' | 'memory' | 'read' | 'edit' | 'command' | 'success' | 'error' | 'talking';
+
+export interface ActivityCue {
+  kind: ActivityCueKind;
+  text?: string;
+}
+
 /**
  * The single avatar control surface.
  *
@@ -17,6 +24,7 @@ export type { AvatarState };
  */
 export interface CharacterDriver {
   setState(s: AvatarState): void;
+  setActivity(cue: ActivityCue | null): void;
   setMouthOpen(v: number): void;
   /** Current state (or null before the first setState). */
   readonly state: AvatarState | null;

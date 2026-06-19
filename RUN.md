@@ -1,8 +1,8 @@
-# Companion — Run & Integration Guide
+# Nero — Run & Integration Guide
 
 Built via multi-agent (Codex + Claude) on 2026-06-19. **8 components, type-check clean together (TS 5.6, 0 src errors), executor live-verified against codex 0.139.0.** The headless-testable core is proven; the steps below are what needs *your Mac + keys* to bring it alive.
 
-## 1. Keys — create `app/.env`
+## 1. Keys — create `.env`
 ```
 NEBIUS_API_KEY=...
 NEBIUS_MODEL=deepseek-ai/DeepSeek-R1-0528
@@ -13,6 +13,8 @@ INSFORGE_KEY=...
 ANTHROPIC_API_KEY=...                 # only if you use the Claude executor (Codex is default)
 COMPANION_WORKDIR=/abs/path/to/scratch-git-repo   # the repo the agent actually codes in
 ```
+> Nero still uses the `COMPANION_*` env prefix for compatibility with the existing runtime config and IPC surfaces.
+
 > Verify Nebius ids first: `curl -s https://api.tokenfactory.nebius.com/v1/models -H "Authorization: Bearer $NEBIUS_API_KEY" | grep -o '"id":"[^"]*"' | head` — catalog rotates; fix the env if an id differs.
 
 ## 2. Provision Insforge (once) — run this SQL in your project
@@ -37,14 +39,14 @@ $func$;
 Then smoke-test: a `remember()` + `recall()` round-trip should return the row with a similarity score.
 
 ## 3. The avatar — a hand-built pixel-art cat (default; no assets needed)
-The character is a procedurally-drawn 16-bit pixel cat that ships **in code** — it animates through agent state with posture (stands / sits / **walks** while working, with a real leg cycle) and needs **no model files**. It renders out of the box, with no extra setup.
+The character is Nero, a procedurally-drawn 16-bit pixel cat that ships **in code** — it animates through agent state with posture (stands / sits / **walks** while working, with a real leg cycle) and needs **no model files**. It renders out of the box, with no extra setup.
 
-> **Optional — swap in a Live2D model instead.** Drop `live2dcubismcore.min.js` + a Cubism-4 model into `app/public/live2d/` and point `modelUrl` at it (see `app/public/live2d/README.md`). The same model-agnostic `CharacterDriver` facade drives either one, so voice + the event pipeline are unchanged; tune the state→expression/motion map in `stateMachine.ts` to the real model's group names.
+> **Optional — swap in a Live2D model instead.** Drop `live2dcubismcore.min.js` + a Cubism-4 model into `public/live2d/` and point `modelUrl` at it (see `public/live2d/README.md`). The same model-agnostic `CharacterDriver` facade drives either one, so voice + the event pipeline are unchanged; tune the state→expression/motion map in `stateMachine.ts` to the real model's group names.
 
 ## 4. Voice proxy (Vapi → Nebius) — Vapi can't reach localhost, and appends `/chat/completions`
 ```
 # terminal A — start the SSE proxy (listens on :8788)
-cd app && npx tsx src/proxy/index.ts
+npx tsx src/proxy/index.ts
 # terminal B — expose it
 ngrok http 8788          # copy the https URL
 ```
@@ -64,9 +66,9 @@ Grant **Microphone** + **Screen Recording** to the launching binary; **relaunch*
 
 ## 6. Run
 ```
-cd app && npm start
+npm start
 ```
-Summon (Cmd+Shift+Space) → click **Start** (mic-gesture gate) → speak a task → the character thinks (Nebius `reasoning_content`) → drives Codex in `COMPANION_WORKDIR` (each action narrated + animated) → writes to Insforge memory. Then ask *"what did we do?"* for the pgvector recall beat.
+Summon (Cmd+Shift+Space) → click **Start** in the full UI, or click **Nero** once in floating mode (mic-gesture gate) → speak a task → the character thinks (Nebius `reasoning_content`) → drives Codex in `COMPANION_WORKDIR` (each action narrated + animated) → writes to Insforge memory. Then ask *"what did we do?"* for the pgvector recall beat.
 
 ### Optional floating character window
 
@@ -77,9 +79,10 @@ COMPANION_FLOATING_WINDOW=1 npm start
 ```
 
 This keeps the normal window as the default. The opt-in mode shrinks the
-Electron window, removes the frame, makes the background transparent, and hides
-every overlay panel so the only visible surface is the cat. Use the normal app
-window for controls and debugging.
+Electron window, removes the frame, makes the background transparent, hides every
+overlay panel so the only visible surface is the cat, and keeps Nero above normal
+windows across macOS Spaces/full-screen apps. Click Nero once to start the voice
+session. Use the normal app window for controls and debugging.
 
 ## Proven vs. needs-your-machine
 - **✅ Proven headlessly:** all 8 modules type-check together (0 src errors); executor live-verified vs real codex 0.139.0; renderer Vite build OK (500 modules); brain/memory/vision/proxy code-complete + scoped-clean.

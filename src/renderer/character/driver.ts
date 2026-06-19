@@ -2,13 +2,13 @@
 //
 // Wraps AvatarStateMachine + AmplitudeLipSync behind the model-agnostic
 // CharacterDriver surface. Voice and the action-event pipeline only ever see
-// setState / setMouthOpen / setTalking / speak. Whether a real Live2D model or
-// the placeholder is mounted is invisible to them.
+// setState / setActivity / setMouthOpen / setTalking / speak. Whether a real
+// Live2D model or the placeholder is mounted is invisible to them.
 
 import { createAvatar, type Avatar } from './avatar';
 import { AvatarStateMachine } from './stateMachine';
 import { AmplitudeLipSync } from './lipsync';
-import type { CharacterDriver } from './types';
+import type { ActivityCue, CharacterDriver } from './types';
 import type { AvatarState } from '../../shared/avatar';
 
 class Live2DCharacterDriver implements CharacterDriver {
@@ -31,6 +31,10 @@ class Live2DCharacterDriver implements CharacterDriver {
 
   setState(s: AvatarState): void {
     this.sm.setState(s);
+  }
+
+  setActivity(cue: ActivityCue | null): void {
+    this.avatar.placeholder?.setActivity(cue);
   }
 
   setMouthOpen(v: number): void {
