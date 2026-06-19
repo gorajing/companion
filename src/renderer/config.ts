@@ -23,6 +23,12 @@ export interface CompanionConfig {
   /** Vapi PUBLISHABLE key — safe to ship in the renderer. */
   vapiPublicKey: string;
   /**
+   * Server-side Vapi assistant id. When non-empty, the renderer starts the call
+   * with this id (the existing gpt-4.1 "Companion" assistant) instead of the
+   * inline custom-llm assistant — no local proxy needed.
+   */
+  vapiAssistantId: string;
+  /**
    * Base URL of the OpenAI-compatible custom-llm SSE proxy (ngrok ROOT, no
    * trailing /chat/completions — Vapi appends the path itself).
    */
@@ -51,6 +57,7 @@ function read(field: keyof CompanionConfig, viteKey: string, fallback: string): 
 export function loadConfig(): CompanionConfig {
   return {
     vapiPublicKey: read('vapiPublicKey', 'VITE_VAPI_PUBLIC_KEY', ''),
+    vapiAssistantId: read('vapiAssistantId', 'VITE_VAPI_ASSISTANT_ID', ''),
     // Proxy base; MAIN PATCHes the live ngrok URL onto the Vapi assistant each
     // launch, but the renderer-side inline assistant still needs a value.
     customLlmUrl: read('customLlmUrl', 'VITE_CUSTOM_LLM_URL', 'http://127.0.0.1:8787'),

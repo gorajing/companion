@@ -52,8 +52,17 @@ export function createVoice(opts: CreateVoiceOptions): VoiceController {
         wireVapiEvents(vapi, { character, captions, sessionId, onToolCalls, onError });
         wired = true;
       }
-      // CreateAssistantDTO is a large generated union; cast at this boundary only.
-      await vapi.start(buildAssistant(config) as never);
+      if (config.vapiAssistantId) {
+        // Server-side path: start with the existing gpt-4.1 "Companion" assistant id.
+        // No local custom-llm proxy needed yet; the brain swaps to Nebius server-side
+        // later (by repointing this assistant's model), not in the renderer.
+        // @vapi-ai/web's start() accepts an assistant-id string as its first arg.
+        await vapi.start(config.vapiAssistantId);
+      } else {
+        // Fallback: inline custom-llm assistant (needs a running proxy at customLlmUrl).
+        // CreateAssistantDTO is a large generated union; cast at this boundary only.
+        await vapi.start(buildAssistant(config) as never);
+      }
       callActive = true;
     },
 

@@ -10,6 +10,18 @@ import path from 'node:path';
 const SUMMON_ACCELERATOR = 'CommandOrControl+Shift+Space';
 
 export function createWindow(): BrowserWindow {
+  // Renderer-safe runtime config, sourced from MAIN's process.env (populated by
+  // dotenv in src/main.ts). Only the Vapi PUBLIC key + non-secret URLs/ids cross
+  // into the renderer; private keys stay in MAIN. Passed via additionalArguments
+  // (a single argv element — these values contain no spaces).
+  const companionCfg = {
+    vapiPublicKey: process.env.VAPI_PUBLIC_KEY ?? '',
+    vapiAssistantId: process.env.VAPI_ASSISTANT_ID ?? '',
+    customLlmUrl: process.env.VAPI_PROXY_URL ?? 'http://127.0.0.1:8787',
+    customLlmModel: process.env.NEBIUS_MODEL ?? 'deepseek-ai/DeepSeek-V3.2',
+    modelUrl: process.env.LIVE2D_MODEL_URL ?? '/live2d/model.model3.json',
+  };
+
   const mainWindow = new BrowserWindow({
     width: 1024,
     height: 768,
@@ -18,6 +30,7 @@ export function createWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      additionalArguments: ['--companion-cfg=' + JSON.stringify(companionCfg)],
     },
   });
 

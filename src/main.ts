@@ -1,8 +1,10 @@
+import 'dotenv/config'; // MUST be first: populates process.env from ./.env before any module reads it.
 // src/main.ts — Electron MAIN process entry. Boots a secure window, gates the macOS mic via
 // TCC, installs Chromium permission handlers, registers all typed IPC, and a summon shortcut.
 //
 // Ordering matters: session permission handlers + the mic TCC prompt run INSIDE whenReady,
 // BEFORE the window is created, so the renderer's getUserMedia is never raced/denied.
+console.log('[main] env loaded, VAPI_PUBLIC_KEY set:', Boolean(process.env.VAPI_PUBLIC_KEY));
 import { app, BrowserWindow } from 'electron';
 import started from 'electron-squirrel-startup';
 

@@ -15,6 +15,19 @@ import type { RememberInput, MemoryRow, MemoryMatch } from './shared/memory';
 
 type AgentKindArg = 'codex' | 'claude';
 
+// Renderer-safe runtime config injected by MAIN via webPreferences.additionalArguments.
+// A sandboxed preload CAN read process.argv, so we parse the --companion-cfg= argv element
+// here and expose it as window.COMPANION_CFG for src/renderer/config.ts to consume.
+const cfgArg = process.argv.find((a) => a.startsWith('--companion-cfg='));
+let companionCfg: Record<string, string> = {};
+if (cfgArg) {
+  try {
+    companionCfg = JSON.parse(cfgArg.slice('--companion-cfg='.length));
+  } catch {
+    /* ignore malformed cfg — renderer falls back to empty defaults */
+  }
+}
+
 /** Subscribe to a MAIN->renderer push channel; returns an unsubscribe fn. */
 function subscribe<T>(channel: string, cb: (payload: T) => void): () => void {
   const handler = (_e: unknown, payload: T): void => cb(payload);
@@ -77,3 +90,4 @@ contextBridge.exposeInMainWorld('companion', companion);
 contextBridge.exposeInMainWorld('brain', brain);
 contextBridge.exposeInMainWorld('memory', memory);
 contextBridge.exposeInMainWorld('vision', vision);
+contextBridge.exposeInMainWorld('COMPANION_CFG', companionCfg);
