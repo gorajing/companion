@@ -101,6 +101,19 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     eye: 0xffd61e,
     ear: 0x70736e,
   } as const;
+  // The cat stays four-color; transient state effects get their own palette.
+  const EFFECT = {
+    thought: 0xffc94a,
+    thoughtHot: 0xffe071,
+    signal: 0x43d7ff,
+    signalSoft: 0x9beeff,
+    working: 0x7aa2ff,
+    workingSoft: 0xd8e5ff,
+    success: 0x67e878,
+    successGold: 0xffdf4d,
+    error: 0xff4d4d,
+    errorHot: 0xff8a3d,
+  } as const;
 
   const aura = new PIXI.Graphics();
   aura.zIndex = 0;
@@ -273,7 +286,7 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     }
 
     if (state === 'error') {
-      px(mouth, face.mouthX, face.mouthY, 2, 1, CAT.white);
+      px(mouth, face.mouthX, face.mouthY, 2, 1, EFFECT.error);
     } else if (talking || mouthOpen > 0.16) {
       px(mouth, face.mouthX, face.mouthY, 1, 1, CAT.white);
       if (mouthOpen > 0.48 || talking) px(mouth, face.mouthX + 1, face.mouthY, 1, 1, CAT.white);
@@ -284,20 +297,26 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     aura.clear();
     const blink = Math.floor(tick / 18) % 2;
     if (state === 'thinking') {
-      px(aura, 10, 1, 1, 1, CAT.eye);
-      if (blink) px(aura, 12, 0, 1, 1, CAT.eye);
-      px(aura, 13, 1, 1, 1, CAT.eye);
+      px(aura, 10, 1, 1, 1, EFFECT.thought);
+      if (blink) px(aura, 12, 0, 1, 1, EFFECT.thoughtHot);
+      px(aura, 13, 1, 1, 1, EFFECT.thought);
+    }
+    if (state === 'working') {
+      px(aura, 3, 7, 1, 1, EFFECT.workingSoft);
+      if (blink) px(aura, 2, 9, 1, 1, EFFECT.working);
+      px(aura, 15, 10, 1, 1, EFFECT.working);
+      if (blink) px(aura, 16, 12, 1, 1, EFFECT.workingSoft);
     }
     if (state === 'done') {
-      px(aura, 5, 3, 1, 1, CAT.white);
-      if (blink) px(aura, 4, 4, 1, 1, CAT.eye);
-      px(aura, 15, 4, 1, 1, CAT.white);
-      if (blink) px(aura, 16, 5, 1, 1, CAT.eye);
-      px(aura, 14, 10, 1, 1, CAT.white);
+      px(aura, 5, 3, 1, 1, EFFECT.success);
+      if (blink) px(aura, 4, 4, 1, 1, EFFECT.successGold);
+      px(aura, 15, 4, 1, 1, EFFECT.success);
+      if (blink) px(aura, 16, 5, 1, 1, EFFECT.successGold);
+      px(aura, 14, 10, 1, 1, EFFECT.success);
     }
     if (state === 'error') {
-      px(aura, 6, 3, 1, 1, CAT.eye);
-      if (blink) px(aura, 15, 3, 1, 1, CAT.eye);
+      px(aura, 6, 3, 1, 1, EFFECT.error);
+      if (blink) px(aura, 15, 3, 1, 1, EFFECT.errorHot);
     }
   };
 
@@ -307,11 +326,11 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
 
     if (talking || state === 'listening') {
       const frame = Math.floor(tick / 16) % 3;
-      px(signal, 15, 5, 1, 1, CAT.eye);
-      if (frame > 0) px(signal, 16, 4, 1, 1, CAT.eye);
-      if (frame > 1) px(signal, 16, 7, 1, 1, CAT.eye);
-      px(signal, 6, 5, 1, 1, CAT.white);
-      if (frame > 0) px(signal, 5, 4, 1, 1, CAT.white);
+      px(signal, 15, 5, 1, 1, EFFECT.signal);
+      if (frame > 0) px(signal, 16, 4, 1, 1, EFFECT.signalSoft);
+      if (frame > 1) px(signal, 16, 7, 1, 1, EFFECT.signalSoft);
+      px(signal, 6, 5, 1, 1, EFFECT.signalSoft);
+      if (frame > 0) px(signal, 5, 4, 1, 1, EFFECT.signal);
     }
   };
 
