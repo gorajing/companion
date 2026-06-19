@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob: https:; connect-src 'self' https: wss: http://127.0.0.1:8787; font-src 'self' data:;" />
+    <title>Companion</title>
+
+    <!--
+      Cubism Core MUST load (classic <script>, not import) BEFORE the renderer
+      bundle: it attaches the global window.Live2DCubismCore that the Live2D
+      plugin needs. Self-hosted at public/live2d/live2dcubismcore.min.js (served
+      from the web root as /live2d/...). If the file is absent the avatar code
+      detects the missing global and renders the placeholder instead — the app
+      still boots. See public/live2d/README.md.
+    -->
+    <script src="/live2d/live2dcubismcore.min.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="live2d-canvas"></canvas>
+
+      <div id="overlay">
+        <header id="topbar">
+          <div id="brand">Companion</div>
+          <div id="controls">
+            <button id="start-btn" type="button">Start call</button>
+            <button id="stop-btn" type="button" disabled>End call</button>
+            <button id="mute-btn" type="button" disabled>Mute</button>
+          </div>
+        </header>
+
+        <div id="status">Loading…</div>
+
+        <section id="captions">
+          <div id="caption-final" class="caption"></div>
+          <div id="caption-partial" class="caption partial"></div>
+        </section>
+
+        <section id="timeline-panel">
+          <h2>Action timeline</h2>
+          <div id="timeline"></div>
+        </section>
+      </div>
+    </div>
+
+    <script type="module" src="/src/renderer.ts"></script>
+  </body>
+</html>
