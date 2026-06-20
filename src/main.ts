@@ -10,7 +10,7 @@ import started from 'electron-squirrel-startup';
 
 import { ensureMicAccess, installPermissionHandlers } from './main/mic';
 import { registerIpcHandlers } from './main/ipc';
-import { createWindow, registerSummonShortcut, unregisterShortcuts } from './main/window';
+import { createWindow, registerSummonShortcut, unregisterShortcuts, startCursorTracking } from './main/window';
 import { cancelAllRuns } from './main/orchestrator';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -42,7 +42,8 @@ app.whenReady().then(async () => {
   }
 
   // 3. Secure window + summon shortcut.
-  createWindow();
+  const win = createWindow();
+  startCursorTracking(win);
   registerSummonShortcut();
 
   app.on('activate', () => {

@@ -47,6 +47,9 @@ export async function bootstrap(): Promise<void> {
   const timeline = new ActionTimeline();
   subscribeActionEvents({ character: driver, timeline, captions });
 
+  // Aliveness: the cat watches the cursor (gaze eased toward the pointer).
+  getCompanion()?.onCursor?.((target) => driver.setGaze?.(target));
+
   // 4: voice.
   const onToolCalls = (list: VapiToolCall[]) => {
     for (const tc of list) {

@@ -57,6 +57,8 @@ const companion = {
     subscribe<{ runId: string }>(CH.runEnd, cb),
   onMicToggleMute: (cb: () => void): (() => void) =>
     subscribe<void>(CH.micToggleMute, () => cb()),
+  onCursor: (cb: (t: { x: number; y: number }) => void): (() => void) =>
+    subscribe<{ x: number; y: number }>(CH.cursorMove, cb),
 };
 
 const brain = {

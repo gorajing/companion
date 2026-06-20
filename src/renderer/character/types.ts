@@ -4,6 +4,7 @@
 // a real Live2D model and the placeholder both implement this identical surface.
 
 import type { AvatarState } from '../../shared/avatar';
+import type { GazeTarget } from '../../shared/gaze';
 
 export type { AvatarState };
 
@@ -46,6 +47,8 @@ export interface CharacterDriver {
   setTalking(talking: boolean): void;
   /** Presentation-mode input gate: show whether the user's mic is muted. */
   setMuted(muted: boolean): void;
+  /** Point the eyes toward a normalized cursor target; null re-centres. No-op for a real model. */
+  setGaze?(target: GazeTarget | null): void;
   /** Play a pre-rendered narration clip with built-in lip-sync (model.speak). */
   speak?(audioUrl: string, onFinish?: () => void): void;
   /** Stop any speak() playback. */

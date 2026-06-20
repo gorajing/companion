@@ -12,7 +12,9 @@ import '@pixi/unsafe-eval';
 import * as PIXI from 'pixi.js';
 import type { Live2DModel as Live2DModelType } from 'pixi-live2d-display-lipsyncpatch';
 import type { AvatarState } from '../../shared/avatar';
+import type { GazeTarget } from '../../shared/gaze';
 import type { ActivityCue } from './types';
+import { Gaze } from './gaze';
 
 const MUTED_MIC_BADGE_URL = 'assets/muted-mic-32-2color.png';
 const FLOATING_FIT = {
@@ -57,6 +59,8 @@ export interface Placeholder {
   setTalking(talking: boolean): void;
   /** Presentation-mode mic input gate. */
   setMuted(muted: boolean): void;
+  /** Point the eyes toward a normalized cursor target; null re-centres. */
+  setGaze(target: GazeTarget | null): void;
 }
 
 async function modelExists(url: string): Promise<boolean> {
@@ -103,6 +107,9 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
   let mouthOpen = 0;
   let talking = false;
   let muted = false;
+  const gaze = new Gaze();
+  let gazeLookX = 0;
+  let gazeLookY = 0;
   let blinkUntil = 0;
   let nextBlink = performance.now() + 1700;
   let activity: ActivityCue | null = null;
@@ -326,8 +333,8 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
   const redrawFace = (tick = 0, action = actionForTick(tick)) => {
     const blink = performance.now() < blinkUntil;
     const eyeColor = CAT.eye;
-    const lookX = state === 'thinking' ? -1 : 0;
-    const lookY = state === 'thinking' ? -1 : 0;
+    const lookX = state === 'thinking' ? -1 : gazeLookX;
+    const lookY = state === 'thinking' ? -1 : gazeLookY;
     const face = faceForAction(action);
 
     eyes.clear();
@@ -603,6 +610,9 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
       mutedBadge.alpha = 0.96;
       mutedBadge.position.set(124, -138 + Math.round(Math.sin(tick / 26) * 4));
     }
+    const g = gaze.step();
+    gazeLookX = g.lookX;
+    gazeLookY = g.lookY;
     drawTail(tick, action);
     drawCat(tick, action);
     redrawFace(tick, action);
@@ -670,6 +680,9 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
       redrawSignal();
       drawActivityProp();
       refreshActivityText();
+    },
+    setGaze: (target: GazeTarget | null) => {
+      gaze.setTarget(target);
     },
   };
 }

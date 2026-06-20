@@ -10,6 +10,7 @@ import { AvatarStateMachine } from './stateMachine';
 import { AmplitudeLipSync } from './lipsync';
 import type { ActivityCue, CharacterDriver } from './types';
 import type { AvatarState } from '../../shared/avatar';
+import type { GazeTarget } from '../../shared/gaze';
 
 class Live2DCharacterDriver implements CharacterDriver {
   private readonly sm: AvatarStateMachine;
@@ -56,6 +57,10 @@ class Live2DCharacterDriver implements CharacterDriver {
   setMuted(muted: boolean): void {
     this.avatar.placeholder?.setMuted(muted);
     if (muted) this.lipsync.setAmplitude(0);
+  }
+
+  setGaze(target: GazeTarget | null): void {
+    this.avatar.placeholder?.setGaze(target);
   }
 
   speak(audioUrl: string, onFinish?: () => void): void {

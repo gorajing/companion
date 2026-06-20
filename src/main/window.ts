@@ -4,9 +4,10 @@
 // nodeIntegration OFF. The renderer reaches MAIN only through the preload contextBridge.
 // The MAIN_WINDOW_VITE_* magic constants are injected by @electron-forge/plugin-vite and
 // typed via forge.env.d.ts — do NOT redeclare them.
-import { BrowserWindow, globalShortcut } from 'electron';
+import { BrowserWindow, globalShortcut, screen } from 'electron';
 import path from 'node:path';
 import { CH } from '../shared/ipc';
+import { cursorToGazeTarget } from '../shared/gaze';
 
 const SUMMON_ACCELERATOR = 'CommandOrControl+Shift+Space';
 const MUTE_ACCELERATOR = 'CommandOrControl+Shift+M';
@@ -68,6 +69,25 @@ export function createWindow(): BrowserWindow {
   }
 
   return mainWindow;
+}
+
+const CURSOR_POLL_MS = 90;
+// Pixel distance from the window centre at which the gaze is fully deflected.
+const CURSOR_REACH_PX = 520;
+
+/**
+ * Poll the global cursor and push a normalized gaze target to the renderer so
+ * the cat can "watch" the pointer. Returns a stop fn; also self-stops on close.
+ */
+export function startCursorTracking(win: BrowserWindow): () => void {
+  const timer = setInterval(() => {
+    if (win.isDestroyed() || !win.isVisible()) return;
+    const cursor = screen.getCursorScreenPoint();
+    const target = cursorToGazeTarget(cursor, win.getBounds(), CURSOR_REACH_PX);
+    win.webContents.send(CH.cursorMove, target);
+  }, CURSOR_POLL_MS);
+  win.on('closed', () => clearInterval(timer));
+  return () => clearInterval(timer);
 }
 
 /**
