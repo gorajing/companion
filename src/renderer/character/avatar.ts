@@ -15,6 +15,12 @@ import type { AvatarState } from '../../shared/avatar';
 import type { ActivityCue } from './types';
 
 const MUTED_MIC_BADGE_URL = 'assets/muted-mic-32-2color.png';
+const FLOATING_FIT = {
+  width: 320,
+  height: 340,
+  minScale: 1.02,
+  maxScale: 1.28,
+} as const;
 
 // REQUIRED by the plugin: it reads window.PIXI.Ticker to auto-update models, and
 // for some bundlers grabs other PIXI internals. Must be set before from().
@@ -532,14 +538,19 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     const width = app.screen.width;
     const height = app.screen.height;
     const floating = isFloatingWindow();
-    container.position.set(width / 2, height / 2 - (floating ? 8 : 16));
+    container.position.set(width / 2, height / 2 + (floating ? 4 : -16));
   };
 
   const fit = () => {
     const width = app.screen.width;
     const height = app.screen.height;
+    const floating = isFloatingWindow();
     const baseScale = Math.min(1.35, Math.max(0.72, Math.min(width / 380, height / 390)));
-    const scale = isFloatingWindow() ? baseScale * 0.76 : baseScale;
+    const floatingScale = Math.min(
+      FLOATING_FIT.maxScale,
+      Math.max(FLOATING_FIT.minScale, Math.min(width / FLOATING_FIT.width, height / FLOATING_FIT.height)),
+    );
+    const scale = floating ? floatingScale : baseScale;
     container.scale.set(scale);
     positionContainer();
     lastFitWidth = width;
@@ -575,10 +586,10 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     body.position.y = breathe + focusLift;
     mutedBadge.visible = muted;
     if (muted) {
-      const badgeScale = 0.22 + Math.sin(tick / 30) * 0.006;
+      const badgeScale = 0.18 + Math.sin(tick / 30) * 0.005;
       mutedBadge.scale.set(badgeScale);
       mutedBadge.alpha = 0.96;
-      mutedBadge.position.set(132, -122 + Math.round(Math.sin(tick / 26) * 4));
+      mutedBadge.position.set(124, -138 + Math.round(Math.sin(tick / 26) * 4));
     }
     drawTail(tick, action);
     drawCat(tick, action);

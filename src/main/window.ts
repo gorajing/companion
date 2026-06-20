@@ -11,6 +11,10 @@ import { CH } from '../shared/ipc';
 const SUMMON_ACCELERATOR = 'CommandOrControl+Shift+Space';
 const MUTE_ACCELERATOR = 'CommandOrControl+Shift+M';
 const FLOATING_WINDOW_FLAG = process.env.COMPANION_FLOATING_WINDOW === '1';
+const FLOATING_WINDOW_SIZE = {
+  width: 380,
+  height: 400,
+} as const;
 
 export function createWindow(): BrowserWindow {
   // Renderer-safe runtime config, sourced from MAIN's process.env (populated by
@@ -28,8 +32,8 @@ export function createWindow(): BrowserWindow {
 
   const mainWindow = new BrowserWindow({
     title: 'Nero',
-    width: FLOATING_WINDOW_FLAG ? 420 : 1024,
-    height: FLOATING_WINDOW_FLAG ? 460 : 768,
+    width: FLOATING_WINDOW_FLAG ? FLOATING_WINDOW_SIZE.width : 1024,
+    height: FLOATING_WINDOW_FLAG ? FLOATING_WINDOW_SIZE.height : 768,
     frame: !FLOATING_WINDOW_FLAG,
     transparent: FLOATING_WINDOW_FLAG,
     backgroundColor: FLOATING_WINDOW_FLAG ? '#00000000' : '#0e1018',
