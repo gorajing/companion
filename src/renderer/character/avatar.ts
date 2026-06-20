@@ -16,10 +16,10 @@ import type { ActivityCue } from './types';
 
 const MUTED_MIC_BADGE_URL = 'assets/muted-mic-32-2color.png';
 const FLOATING_FIT = {
-  width: 320,
-  height: 340,
-  minScale: 1.02,
-  maxScale: 1.28,
+  width: 360,
+  height: 330,
+  minScale: 0.1,
+  maxScale: 1.12,
 } as const;
 
 // REQUIRED by the plugin: it reads window.PIXI.Ticker to auto-update models, and
@@ -534,22 +534,33 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
 
   let lastFitWidth = 0;
   let lastFitHeight = 0;
+  let currentFloatingScale: number = FLOATING_FIT.maxScale;
+  const renderSize = () => {
+    if (!isFloatingWindow()) return { width: app.screen.width, height: app.screen.height };
+    return {
+      width: Math.max(1, Math.round(window.innerWidth || app.screen.width)),
+      height: Math.max(1, Math.round(window.innerHeight || app.screen.height)),
+    };
+  };
+
   const positionContainer = () => {
-    const width = app.screen.width;
-    const height = app.screen.height;
+    const { width, height } = renderSize();
     const floating = isFloatingWindow();
-    container.position.set(width / 2, height / 2 + (floating ? 4 : -16));
+    const smallWindowLift = floating ? Math.max(0, 1 - currentFloatingScale) * -18 : 0;
+    container.position.set(width / 2, height / 2 + (floating ? 4 + smallWindowLift : -16));
   };
 
   const fit = () => {
-    const width = app.screen.width;
-    const height = app.screen.height;
+    const { width, height } = renderSize();
     const floating = isFloatingWindow();
     const baseScale = Math.min(1.35, Math.max(0.72, Math.min(width / 380, height / 390)));
+    const rawFloatingScale = Math.min(width / FLOATING_FIT.width, height / FLOATING_FIT.height);
+    const smallWindowShrink = rawFloatingScale < 1 ? Math.sqrt(rawFloatingScale) : 1;
     const floatingScale = Math.min(
       FLOATING_FIT.maxScale,
-      Math.max(FLOATING_FIT.minScale, Math.min(width / FLOATING_FIT.width, height / FLOATING_FIT.height)),
+      Math.max(FLOATING_FIT.minScale, rawFloatingScale * smallWindowShrink),
     );
+    currentFloatingScale = floatingScale;
     const scale = floating ? floatingScale : baseScale;
     container.scale.set(scale);
     positionContainer();
@@ -567,7 +578,8 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
   refreshActivityText();
 
   app.ticker.add(() => {
-    if (app.screen.width !== lastFitWidth || app.screen.height !== lastFitHeight) fit();
+    const { width, height } = renderSize();
+    if (width !== lastFitWidth || height !== lastFitHeight) fit();
     refreshLabelVisibility();
     refreshActivityText();
 
@@ -586,7 +598,7 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     body.position.y = breathe + focusLift;
     mutedBadge.visible = muted;
     if (muted) {
-      const badgeScale = 0.18 + Math.sin(tick / 30) * 0.005;
+      const badgeScale = (0.18 + Math.sin(tick / 30) * 0.005) * Math.min(1, Math.max(0.72, currentFloatingScale));
       mutedBadge.scale.set(badgeScale);
       mutedBadge.alpha = 0.96;
       mutedBadge.position.set(124, -138 + Math.round(Math.sin(tick / 26) * 4));
