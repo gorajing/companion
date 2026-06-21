@@ -15,6 +15,8 @@ import type { AvatarState } from '../../shared/avatar';
 import type { GazeTarget } from '../../shared/gaze';
 import type { ActivityCue } from './types';
 import { Gaze } from './gaze';
+import { Activity, type Energy } from './activity';
+import { framePolicy } from './framePolicy';
 
 const MUTED_MIC_BADGE_URL = 'assets/muted-mic-32-2color.png';
 const FLOATING_FIT = {
@@ -63,6 +65,10 @@ export interface Placeholder {
   setGaze(target: GazeTarget | null): void;
   /** One-shot happy "petted" reaction. */
   pet(): void;
+  /** Register a real interaction to keep the cat awake. */
+  poke(): void;
+  /** Force full frame-rate while the agent is working/talking. */
+  setBusy(busy: boolean): void;
 }
 
 async function modelExists(url: string): Promise<boolean> {
@@ -113,6 +119,10 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
   let gazeLookX = 0;
   let gazeLookY = 0;
   let petUntil = 0;
+  const presence = new Activity(performance.now());
+  let busy = false;
+  let energy: Energy = 'awake';
+  let docVisible = typeof document === 'undefined' ? true : document.visibilityState !== 'hidden';
   let blinkUntil = 0;
   let nextBlink = performance.now() + 1700;
   let activity: ActivityCue | null = null;
@@ -591,6 +601,14 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
   fit();
   window.addEventListener('resize', fit);
 
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      docVisible = document.visibilityState !== 'hidden';
+      // Re-start the loop on un-occlude; the in-ticker policy stops it on occlude.
+      if (docVisible && !app.ticker.started) app.ticker.start();
+    });
+  }
+
   drawTail();
   drawCat();
   redrawFace();
@@ -599,6 +617,14 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
   refreshActivityText();
 
   app.ticker.add(() => {
+    const nowMs = performance.now();
+    energy = presence.energy(nowMs);
+    const plan = framePolicy(docVisible, energy, busy);
+    app.ticker.maxFPS = plan.targetFps;
+    if (!plan.running) {
+      app.ticker.stop();
+      return;
+    }
     const { width, height } = renderSize();
     if (width !== lastFitWidth || height !== lastFitHeight) fit();
     refreshLabelVisibility();
@@ -701,6 +727,12 @@ function buildPlaceholder(app: PIXI.Application): Placeholder {
     },
     pet: () => {
       petUntil = performance.now() + 900;
+    },
+    poke: () => {
+      presence.poke(performance.now());
+    },
+    setBusy: (next: boolean) => {
+      busy = next;
     },
   };
 }

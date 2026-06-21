@@ -51,6 +51,10 @@ export interface CharacterDriver {
   setGaze?(target: GazeTarget | null): void;
   /** Trigger a one-shot happy "petted" reaction (ears perk, tail flick, sparkle). */
   pet?(): void;
+  /** Register a real interaction (keeps the cat awake / un-throttled). */
+  poke?(): void;
+  /** Force full frame-rate while busy (agent working / talking). */
+  setBusy?(busy: boolean): void;
   /** Play a pre-rendered narration clip with built-in lip-sync (model.speak). */
   speak?(audioUrl: string, onFinish?: () => void): void;
   /** Stop any speak() playback. */

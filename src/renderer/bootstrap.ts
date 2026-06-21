@@ -48,7 +48,7 @@ export async function bootstrap(): Promise<void> {
   subscribeActionEvents({ character: driver, timeline, captions });
 
   // Aliveness: the cat watches the cursor (gaze eased toward the pointer).
-  getCompanion()?.onCursor?.((target) => driver.setGaze?.(target));
+  getCompanion()?.onCursor?.((target) => { driver.poke?.(); driver.setGaze?.(target); });
 
   // 4: voice.
   const onToolCalls = (list: VapiToolCall[]) => {
@@ -136,7 +136,7 @@ export async function bootstrap(): Promise<void> {
     canvas.title = 'Click to pet Nero. Hold to talk. Drag to move. Right-click or M to mute.';
     canvas.style.cursor = 'grab';
     installFloatingWindowGesture(canvas, {
-      onPet: () => driver.pet?.(),
+      onPet: () => { driver.poke?.(); driver.pet?.(); },
       onTalkStart: () => { void startVoiceCall(); },
       onTalkEnd: () => { voice.endCall(); setCallActive(false); },
     });
@@ -185,11 +185,14 @@ export async function bootstrap(): Promise<void> {
   // nothing to abort there — enabling Stop then would be a lie.
   getCompanion()?.onActionEvent((e) => {
     if (e.kind === 'run.started') {
+      driver.setBusy?.(true);
       if (cancelBtn) cancelBtn.disabled = false;
       setStatus('Coding agent running — click Stop to abort.');
     } else if (e.kind === 'run.completed') {
+      driver.setBusy?.(false);
       if (voice.isActive) voice.narrateExact('Done. I finished that.');
     } else if (e.kind === 'run.failed') {
+      driver.setBusy?.(false);
       if (voice.isActive) voice.narrateExact('I got stuck. Please check the app.');
     }
   });

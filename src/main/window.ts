@@ -81,7 +81,7 @@ const CURSOR_REACH_PX = 520;
  */
 export function startCursorTracking(win: BrowserWindow): () => void {
   const timer = setInterval(() => {
-    if (win.isDestroyed() || !win.isVisible()) return;
+    if (win.isDestroyed() || !win.isVisible() || win.isMinimized()) return;
     const cursor = screen.getCursorScreenPoint();
     const target = cursorToGazeTarget(cursor, win.getBounds(), CURSOR_REACH_PX);
     win.webContents.send(CH.cursorMove, target);
